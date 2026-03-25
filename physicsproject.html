@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doppler Effect — Interactive Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a12;
+    --surface: #0c1420;
+    --surface2: #111d2e;
+    --border: #1e3048;
+    --cyan: #00e5ff;
+    --cyan-dim: #007a8c;
+    --red: #ff3355;
+    --amber: #ffb300;
+    --green: #00e676;
+    --text: #e8f4f8;
+    --text-dim: #7a9bb5;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ── NOISE TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 40px 60px 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+
+  .logo-block h1 {
+    font-size: clamp(2rem, 5vw, 3.8rem);
+    font-weight: 800;
+    letter-spacing: -2px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .logo-block h1 span { color: var(--cyan); }
+
+  .logo-block p {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  nav a {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  nav a:hover, nav a.active {
+    color: var(--cyan);
+    border-color: var(--cyan);
+    background: rgba(0,229,255,0.06);
+  }
+
+  /* ── SECTIONS ── */
+  .section {
+    display: none;
+    animation: fadeIn 0.4s ease;
+    position: relative;
+    z-index: 1;
+    padding: 48px 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .section.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-title {
+    font-size: 0.68rem;
+    font-family: var(--mono);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 10px;
+  }
+
+  .section-heading {
+    font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -1.2px;
+    line-height: 1.1;
+    margin-bottom: 40px;
+  }
+
+  /* ── CONCEPT SECTION ── */
+  .concept-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 900px) {
+    .concept-grid { grid-template-columns: 1fr; }
+    .section { padding: 32px 24px; }
+    header { padding: 24px; }
+  }
+
+  .concept-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .concept-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--cyan));
+  }
+
+  .concept-card:hover { border-color: var(--card-accent, var(--cyan)); }
+
+  .concept-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--card-accent, var(--cyan));
+  }
+
+  .concept-card p {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  .formula-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    color: var(--amber);
+    word-break: break-word;
+  }
+
+  .formula-box .label {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    display: block;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .big-formula {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+  }
+
+  .big-formula h3 {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .big-formula .eq {
+    font-family: var(--mono);
+    font-size: clamp(1rem, 2vw, 1.5rem);
+    color: var(--amber);
+    font-weight: 700;
+  }
+
+  .big-formula .legend {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+  }
+
+  .big-formula .legend span {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  .big-formula .legend b { color: var(--amber); }
+
+  /* ── FORMULA TABLE ── */
+  .table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-top: 24px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  thead th {
+    background: var(--surface2);
+    padding: 12px 16px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+
+  tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .mono { font-family: var(--mono); font-size: 0.78rem; color: var(--amber); }
+  .tag-up { color: var(--cyan); font-weight: 700; font-family: var(--mono); font-size: 0.75rem; }
+  .tag-dn { color: var(--red); font-weight: 700; font-family: var(--mono); font-size: 0.75rem; }
+
+  /* ── SIMULATOR ── */
+  .sim-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 1100px) {
+    .sim-layout { grid-template-columns: 1fr; }
+  }
+
+  canvas {
+    width: 100%;
+    background: #020810;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: block;
+    cursor: crosshair;
+  }
+
+  .controls-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .controls-panel h4 {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+
+  .ctrl-group { margin-bottom: 20px; }
+
+  .ctrl-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .ctrl-group label span {
+    font-family: var(--mono);
+    color: var(--cyan);
+    font-size: 0.78rem;
+  }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--cyan);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--cyan);
+  }
+
+  .hud {
+    background: #020810;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    margin-top: 16px;
+    display: grid;
+    gap: 10px;
+  }
+
+  .hud-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .hud-row .key {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .hud-row .val {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--cyan);
+    font-weight: 700;
+  }
+
+  .hud-row .val.red { color: var(--red); }
+  .hud-row .val.amber { color: var(--amber); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .btn:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(0,229,255,0.06); }
+  .btn.danger:hover { border-color: var(--red); color: var(--red); background: rgba(255,51,85,0.06); }
+
+  .sim-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 2px;
+    margin-top: 8px;
+  }
+
+  .sim-status.subsonic { color: var(--cyan); background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.2); }
+  .sim-status.supersonic { color: var(--red); background: rgba(255,51,85,0.08); border: 1px solid rgba(255,51,85,0.2); }
+
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .dot.pulse { animation: pulse 1s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── MACH CONE DIAGRAM ── */
+  .diagram-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 24px;
+  }
+
+  @media (max-width: 900px) {
+    .diagram-grid { grid-template-columns: 1fr; }
+  }
+
+  .diagram-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .diagram-box h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .diagram-box p {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  svg.diagram { width: 100%; height: auto; }
+
+  /* ── APPLICATIONS ── */
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-top: 24px;
+  }
+
+  .app-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .app-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0,229,255,0.3);
+  }
+
+  .app-icon {
+    font-size: 2rem;
+    margin-bottom: 14px;
+    display: block;
+  }
+
+  .app-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .app-card p {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .app-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    border: 1px solid;
+  }
+
+  .tag-cyan { color: var(--cyan); border-color: var(--cyan-dim); }
+  .tag-red { color: var(--red); border-color: rgba(255,51,85,0.4); }
+  .tag-amber { color: var(--amber); border-color: rgba(255,179,0,0.4); }
+  .tag-green { color: var(--green); border-color: rgba(0,230,118,0.4); }
+
+  /* ── QUIZ ── */
+  .quiz-container {
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .quiz-progress {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+
+  .pip {
+    height: 4px;
+    flex: 1;
+    border-radius: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .pip.done { background: var(--green); }
+  .pip.active { background: var(--cyan); }
+  .pip.wrong { background: var(--red); }
+
+  .quiz-score {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+
+  .quiz-score b { color: var(--green); }
+
+  .question-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    margin-bottom: 20px;
+  }
+
+  .q-num {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .q-text {
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .options {
+    display: grid;
+    gap: 10px;
+  }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: all 0.2s;
+    text-align: left;
+    color: var(--text);
+    font-family: var(--sans);
+  }
+
+  .option:hover:not(:disabled) {
+    border-color: var(--cyan);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .option:disabled { cursor: not-allowed; }
+  .option.correct { border-color: var(--green) !important; background: rgba(0,230,118,0.08) !important; color: var(--green); }
+  .option.wrong { border-color: var(--red) !important; background: rgba(255,51,85,0.08) !important; color: var(--red); }
+
+  .opt-letter {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .option:hover:not(:disabled) .opt-letter { border-color: var(--cyan); color: var(--cyan); }
+  .option.correct .opt-letter { border-color: var(--green); color: var(--green); }
+  .option.wrong .opt-letter { border-color: var(--red); color: var(--red); }
+
+  .explanation {
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(0,229,255,0.05);
+    border: 1px solid rgba(0,229,255,0.15);
+    border-radius: 6px;
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    display: none;
+  }
+
+  .explanation.show { display: block; animation: fadeIn 0.3s ease; }
+  .explanation b { color: var(--cyan); }
+
+  .quiz-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: var(--cyan);
+    border: none;
+    color: #000;
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .quiz-btn:hover { background: #00b8cc; }
+  .quiz-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 48px;
+    text-align: center;
+  }
+
+  .result-score {
+    font-size: 5rem;
+    font-weight: 800;
+    letter-spacing: -4px;
+    color: var(--cyan);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .result-label {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+  }
+
+  .result-msg {
+    font-size: 1rem;
+    color: var(--text-dim);
+    margin-bottom: 32px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-block">
+    <h1>Doppler<span>Effect</span></h1>
+    <p>Wave Physics — Interactive Explorer</p>
+  </div>
+  <nav>
+    <a onclick="showSection('concept')" id="nav-concept" class="active">Concept</a>
+    <a onclick="showSection('formula')" id="nav-formula">Formulae</a>
+    <a onclick="showSection('simulator')" id="nav-simulator">Simulator</a>
+    <a onclick="showSection('applications')" id="nav-applications">Applications</a>
+    <a onclick="showSection('quiz')" id="nav-quiz">Quiz</a>
+  </nav>
+</header>
+
+<!-- ══════════════════ CONCEPT ══════════════════ -->
+<div id="concept" class="section active">
+  <p class="section-title">01 — Fundamentals</p>
+  <h2 class="section-heading">What is the Doppler Effect?</h2>
+
+  <div class="big-formula">
+    <h3>Core Principle</h3>
+    <p style="font-family: var(--sans); font-size: 0.95rem; color: var(--text-dim); line-height: 1.7;">When a wave source and observer move relative to each other, the frequency perceived by the observer differs from the emitted frequency. Approaching objects compress wavefronts → higher pitch. Receding objects stretch wavefronts → lower pitch.</p>
+  </div>
+
+  <div class="concept-grid">
+    <div class="concept-card" style="--card-accent: var(--cyan)">
+      <h3>Master Equation</h3>
+      <div class="formula-box" style="background: var(--surface); border: 1px solid var(--border); margin-top: 14px;">
+        <span class="label" style="font-size: 0.65rem; color: var(--text-dim); display: block; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1.5px;">Complete Formula</span>
+        <div style="font-family: var(--mono); font-size: 0.9rem; color: var(--amber); font-weight: 700; margin-bottom: 12px;">f<sub>obs</sub> = f<sub>s</sub> × (v ± v<sub>o</sub>) / (v ∓ v<sub>s</sub>)</div>
+        <div style="font-size: 0.75rem; color: var(--text-dim); line-height: 1.6;">
+          <div><b style="color: var(--amber);">f<sub>obs</sub></b> = observed frequency</div>
+          <div><b style="color: var(--amber);">f<sub>s</sub></b> = source frequency</div>
+          <div><b style="color: var(--amber);">v</b> = speed of sound (~343 m/s)</div>
+          <div><b style="color: var(--amber);">v<sub>o</sub></b> = speed of observer</div>
+          <div><b style="color: var(--amber);">v<sub>s</sub></b> = speed of source</div>
+        </div>
+      </div>
+    </div>
+    <div class="concept-card" style="--card-accent: var(--amber)">
+      <h3>Source Approaching Observer</h3>
+      <p>As the source approaches, each successive wavefront is emitted from a position closer to the observer. This shortens the wavelength and increases the perceived frequency.</p>
+      <div class="formula-box">
+        <span class="label">Formula (observer stationary)</span>
+        f<sub>obs</sub> = f<sub>s</sub> × v / (v − v<sub>s</sub>)
+      </div>
+    </div>
+    <div class="concept-card" style="--card-accent: var(--red)">
+      <h3>Source Receding from Observer</h3>
+      <p>The source moves away, increasing the wavelength with each emission. The observer receives waves at a lower frequency than emitted — a redshift in sound (or light).</p>
+      <div class="formula-box">
+        <span class="label">Formula (observer stationary)</span>
+        f<sub>obs</sub> = f<sub>s</sub> × v / (v + v<sub>s</sub>)
+      </div>
+    </div>
+    <div class="concept-card" style="--card-accent: var(--green)">
+      <h3>Moving Observer</h3>
+      <p>Even if the source is stationary, a moving observer intercepts wavefronts at a different rate. Moving toward the source increases frequency; moving away decreases it.</p>
+      <div class="formula-box">
+        <span class="label">Formula (source stationary)</span>
+        f<sub>obs</sub> = f<sub>s</sub> × (v ± v<sub>o</sub>) / v
+      </div>
+    </div>
+    <div class="concept-card" style="--card-accent: var(--amber)" style="grid-column: span 2">
+      <h3>Sonic Boom (Mach 1 & Beyond)</h3>
+      <p>When the source velocity equals the wave velocity (Mach 1), emitted wavefronts pile up and cannot outrun the source. At supersonic speeds (v<sub>s</sub> > v), a conical shockwave forms — the Mach cone. The half-angle θ of the cone is given by:</p>
+      <div class="formula-box">
+        <span class="label">Mach Cone Half-Angle</span>
+        sin θ = v / v<sub>s</sub> = 1 / M &nbsp;|&nbsp; where M = Mach number = v<sub>s</sub>/v
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ FORMULA TABLE ══════════════════ -->
+<div id="formula" class="section">
+  <p class="section-title">02 — Reference</p>
+  <h2 class="section-heading">All Six Doppler Scenarios</h2>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Scenario</th>
+          <th>Formula</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="mono">01</span></td>
+          <td>Source approaches, observer stationary</td>
+          <td><span class="mono">f<sub>obs</sub> = f<sub>s</sub> · v / (v − v<sub>s</sub>)</span></td>
+          <td><span class="tag-up">↑ INCREASES</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">02</span></td>
+          <td>Source recedes, observer stationary</td>
+          <td><span class="mono">f<sub>obs</sub> = f<sub>s</sub> · v / (v + v<sub>s</sub>)</span></td>
+          <td><span class="tag-dn">↓ DECREASES</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">03</span></td>
+          <td>Observer approaches, source stationary</td>
+          <td><span class="mono">f<sub>obs</sub> = f<sub>s</sub> · (v + v<sub>o</sub>) / v</span></td>
+          <td><span class="tag-up">↑ INCREASES</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">04</span></td>
+          <td>Observer recedes, source stationary</td>
+          <td><span class="mono">f<sub>obs</sub> = f<sub>s</sub> · (v − v<sub>o</sub>) / v</span></td>
+          <td><span class="tag-dn">↓ DECREASES</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">05</span></td>
+          <td>Both approach each other</td>
+          <td><span class="mono">f<sub>obs</sub> = f<sub>s</sub> · (v + v<sub>o</sub>) / (v − v<sub>s</sub>)</span></td>
+          <td><span class="tag-up">↑ MAX INCREASE</span></td>
+        </tr>
+        <tr>
+          <td><span class="mono">06</span></td>
+          <td>Both recede from each other</td>
+          <td><span class="mono">f<sub>obs</sub> = f<sub>s</sub> · (v − v<sub>o</sub>) / (v + v<sub>s</sub>)</span></td>
+          <td><span class="tag-dn">↓ MAX DECREASE</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-top: 32px;">
+    <div class="big-formula">
+      <h3>Sign Convention Memory Aid</h3>
+      <div class="eq" style="font-size: 1rem; line-height: 1.8;">
+        f<sub>obs</sub> = f<sub>s</sub> × <span style="color: var(--green)">(v ± v<sub>o</sub>)</span> / <span style="color: var(--red)">(v ∓ v<sub>s</sub>)</span>
+      </div>
+      <div class="legend" style="margin-top: 16px;">
+        <span style="color: var(--green)">Numerator: + when observer → source, − when observer ← source</span>
+        <span style="color: var(--red)">Denominator: − when source → observer, + when source ← observer</span>
+      </div>
+    </div>
+    <div class="big-formula" style="border-left-color: var(--red)">
+      <h3>Mach Number &amp; Cone Angle</h3>
+      <div class="eq">M = v<sub>s</sub> / v &nbsp;|&nbsp; sin θ = 1 / M &nbsp;|&nbsp; θ = arcsin(v / v<sub>s</sub>)</div>
+      <div class="legend">
+        <span><b>M &lt; 1</b> → subsonic, no cone</span>
+        <span><b>M = 1</b> → sonic, flat shock</span>
+        <span><b>M &gt; 1</b> → supersonic, Mach cone forms</span>
+        <span><b>θ</b> = half-angle of Mach cone</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ SIMULATOR ══════════════════ -->
+<div id="simulator" class="section">
+  <p class="section-title">03 — Interactive</p>
+  <h2 class="section-heading">Live Wave Simulator</h2>
+
+  <div class="sim-layout">
+    <div>
+      <canvas id="simCanvas" height="420"></canvas>
+    </div>
+    <div class="controls-panel">
+      <h4>⚙ Controls</h4>
+
+      <div class="ctrl-group">
+        <label>Source Frequency <span id="lblFreq">400 Hz</span></label>
+        <input type="range" id="rFreq" min="100" max="900" value="400" step="10">
+      </div>
+
+      <div class="ctrl-group">
+        <label>Source Velocity <span id="lblVs">0 m/s</span></label>
+        <input type="range" id="rVs" min="-500" max="500" value="0" step="10">
+      </div>
+
+      <div class="ctrl-group">
+        <label>Observer Velocity <span id="lblVo">0 m/s</span></label>
+        <input type="range" id="rVo" min="-200" max="200" value="0" step="5">
+      </div>
+
+      <div class="ctrl-group">
+        <label>Speed of Sound <span id="lblV">343 m/s</span></label>
+        <input type="range" id="rV" min="200" max="500" value="343" step="1">
+      </div>
+
+      <div id="statusBadge" class="sim-status subsonic">
+        <span class="dot pulse"></span>
+        <span id="statusText">SUBSONIC</span>
+      </div>
+
+      <div class="hud">
+        <div class="hud-row">
+          <span class="key">f_source</span>
+          <span class="val" id="hudFs">400 Hz</span>
+        </div>
+        <div class="hud-row">
+          <span class="key">v_source</span>
+          <span class="val amber" id="hudVs">0 m/s</span>
+        </div>
+        <div class="hud-row">
+          <span class="key">f_observed</span>
+          <span class="val" id="hudFobs">400 Hz</span>
+        </div>
+        <div class="hud-row">
+          <span class="key">Mach #</span>
+          <span class="val red" id="hudMach">0.00</span>
+        </div>
+        <div class="hud-row">
+          <span class="key">Δf shift</span>
+          <span class="val" id="hudDelta">0 Hz</span>
+        </div>
+      </div>
+
+      <button class="btn" id="soundBtn" onclick="toggleAudio()" style="background: rgba(0,229,255,0.12); border-color: #00e5ff; color: #00e5ff; margin-bottom: 8px;">🔊 PLAY SOUND</button>
+      <button class="btn danger" onclick="resetSim()">↺ RESET</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ APPLICATIONS ══════════════════ -->
+<div id="applications" class="section">
+  <p class="section-title">05 — Real World</p>
+  <h2 class="section-heading">Where It Shows Up</h2>
+  <div class="apps-grid">
+    <div class="app-card">
+      <span class="app-icon">🚑</span>
+      <h3>Ambulance Sirens</h3>
+      <p>The classic example — as an ambulance approaches, the compressed wavefronts give a higher pitch. As it recedes, stretched wavefronts produce a lower pitch. The pitch shift can be used to estimate approach speed.</p>
+      <span class="app-tag tag-cyan">ACOUSTICS</span>
+    </div>
+    <div class="app-card">
+      <span class="app-icon">🌌</span>
+      <h3>Hubble's Redshift</h3>
+      <p>Edwin Hubble observed that galaxies have their spectral lines shifted to longer (red) wavelengths — they're all receding from us. This is the Doppler effect applied to light, and it proved the universe is expanding.</p>
+      <span class="app-tag tag-red">COSMOLOGY</span>
+    </div>
+    <div class="app-card">
+      <span class="app-icon">🌩</span>
+      <h3>Weather Radar (NEXRAD)</h3>
+      <p>Doppler radar measures the frequency shift of reflected microwaves to determine wind velocity inside storms. This enables detection of tornadic rotation up to 20 minutes before touchdown.</p>
+      <span class="app-tag tag-amber">METEOROLOGY</span>
+    </div>
+    <div class="app-card">
+      <span class="app-icon">❤️</span>
+      <h3>Doppler Echocardiography</h3>
+      <p>Ultrasound pulses reflect off moving red blood cells. The frequency shift reveals blood flow velocity and direction, allowing doctors to detect valve disorders, arterial blockages, and cardiac output non-invasively.</p>
+      <span class="app-tag tag-green">MEDICINE</span>
+    </div>
+    <div class="app-card">
+      <span class="app-icon">📡</span>
+      <h3>Speed Cameras &amp; LIDAR</h3>
+      <p>Traffic enforcement uses radar or laser pulses that bounce off vehicles. The Doppler shift of the return signal gives speed accurate to ±1 km/h. Police LIDAR uses infrared pulses at 904 nm wavelength.</p>
+      <span class="app-tag tag-amber">LAW ENFORCEMENT</span>
+    </div>
+    <div class="app-card">
+      <span class="app-icon">🛸</span>
+      <h3>Satellite &amp; Deep Space Tracking</h3>
+      <p>NASA's Deep Space Network tracks Voyager 1 (now 24 billion km away) using the Doppler shift of its radio beacon to determine velocity to within centimeters per second — across interstellar distances.</p>
+      <span class="app-tag tag-cyan">SPACE</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ QUIZ ══════════════════ -->
+<div id="quiz" class="section">
+  <p class="section-title">06 — Test Yourself</p>
+  <h2 class="section-heading">Quiz — 5 Questions</h2>
+  <div class="quiz-container" id="quizContainer"></div>
+</div>
+
+<script>
+// ── AUDIO SYSTEM ──────────────────────────────────
+let audioCtx = null;
+let oscillator = null;
+let gainNode = null;
+let isPlaying = false;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playSoundFreq(frequency) {
+  initAudio();
+  if (isPlaying) {
+    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+  } else {
+    oscillator = audioCtx.createOscillator();
+    gainNode = audioCtx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    
+    oscillator.start(audioCtx.currentTime);
+    isPlaying = true;
+    document.getElementById('soundBtn').textContent = '⏹ STOP SOUND';
+  }
+}
+
+function stopSound() {
+  if (isPlaying && oscillator && gainNode) {
+    gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+    oscillator.stop(audioCtx.currentTime + 0.1);
+    isPlaying = false;
+    document.getElementById('soundBtn').textContent = '🔊 PLAY SOUND';
+  }
+}
+
+function toggleAudio() {
+  if (isPlaying) {
+    stopSound();
+  } else {
+    const { fs, vs, vo, v } = getParams();
+    const fobs = Math.max(20, Math.min(20000, calcFobs(fs, vs, vo, v)));
+    playSoundFreq(fobs);
+  }
+}
+
+// ── NAV ──────────────────────────────────────────────
+function showSection(id) {
+  stopSound();
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  if (id === 'simulator') startSim();
+  if (id === 'quiz') initQuiz();
+}
+
+// ── SIMULATOR ────────────────────────────────────────
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
+let simRunning = false, animId;
+let waves = [];
+let sourceX, time = 0;
+const CANVAS_H = 420;
+
+function getParams() {
+  const fs = parseInt(document.getElementById('rFreq').value);
+  const vs = parseInt(document.getElementById('rVs').value);
+  const vo = parseInt(document.getElementById('rVo').value);
+  const v  = parseInt(document.getElementById('rV').value);
+  return { fs, vs, vo, v };
+}
+
+function calcFobs(fs, vs, vo, v) {
+  const denom = v - vs;
+  if (Math.abs(denom) < 1) return fs * (v + vo) / 1;
+  return fs * (v + vo) / denom;
+}
+
+function resetSim() {
+  stopSound();
+  waves = [];
+  time = 0;
+  document.getElementById('rFreq').value = 400;
+  document.getElementById('rVs').value = 0;
+  document.getElementById('rVo').value = 0;
+  document.getElementById('rV').value = 343;
+  updateLabels();
+}
+
+function updateLabels() {
+  const { fs, vs, vo, v } = getParams();
+  document.getElementById('lblFreq').textContent = fs + ' Hz';
+  document.getElementById('lblVs').textContent = vs + ' m/s';
+  document.getElementById('lblVo').textContent = vo + ' m/s';
+  document.getElementById('lblV').textContent = v + ' m/s';
+
+  const fobs = calcFobs(fs, vs, vo, v);
+  const M = Math.abs(vs) / v;
+
+  document.getElementById('hudFs').textContent = fs + ' Hz';
+  document.getElementById('hudVs').textContent = vs + ' m/s';
+  document.getElementById('hudFobs').textContent = Math.round(Math.max(0, fobs)) + ' Hz';
+  document.getElementById('hudMach').textContent = M.toFixed(2);
+  document.getElementById('hudDelta').textContent = (Math.round(fobs - fs) >= 0 ? '+' : '') + Math.round(fobs - fs) + ' Hz';
+
+  const badge = document.getElementById('statusBadge');
+  const txt = document.getElementById('statusText');
+  if (M >= 1) {
+    badge.className = 'sim-status supersonic';
+    txt.textContent = 'SUPERSONIC — MACH CONE';
+  } else {
+    badge.className = 'sim-status subsonic';
+    txt.textContent = 'SUBSONIC';
+  }
+}
+
+['rFreq','rVs','rVo','rV'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    updateLabels();
+    // Update sound frequency in real-time
+    if (isPlaying) {
+      const { fs, vs, vo, v } = getParams();
+      const fobs = Math.max(20, Math.min(20000, calcFobs(fs, vs, vo, v)));
+      playSoundFreq(fobs);
+    }
+  });
+});
+
+function startSim() {
+  if (simRunning) return;
+  simRunning = true;
+  canvas.width = canvas.parentElement.clientWidth;
+  canvas.height = CANVAS_H;
+  sourceX = canvas.width * 0.15;
+  animateFrame();
+}
+
+let lastEmit = 0;
+function animateFrame() {
+  animId = requestAnimationFrame(animateFrame);
+  const { fs, vs, vo, v } = getParams();
+  const dt = 0.016;
+  time += dt;
+
+  // move source
+  const W = canvas.width, H = canvas.height;
+  const pxPerMs = 0.45;
+  sourceX += vs * pxPerMs * dt * 60 / 343 * (v / 343);
+  if (sourceX > W + 80) sourceX = -80;
+  if (sourceX < -80) sourceX = W + 80;
+
+  // emit waves
+  const emitInterval = 1 / fs;
+  if (time - lastEmit >= emitInterval) {
+    waves.push({ x: sourceX, y: H / 2, r: 0, born: time });
+    lastEmit = time;
+    if (waves.length > 80) waves.shift();
+  }
+
+  // expand waves
+  const speedPx = v * pxPerMs * dt * 60 / 343 * (v / 343) * 2;
+  waves.forEach(w => w.r += speedPx);
+  waves = waves.filter(w => w.r < W * 1.5);
+
+  // draw
+  ctx.clearRect(0, 0, W, H);
+
+  // background grid
+  ctx.strokeStyle = 'rgba(30,48,72,0.5)';
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  // Mach cone
+  const M = Math.abs(vs) / v;
+  if (M >= 1) {
+    const sinTheta = 1 / M;
+    const cosTheta = Math.sqrt(1 - sinTheta * sinTheta);
+    const dir = vs > 0 ? -1 : 1;
+    const coneLen = W;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,51,85,0.7)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    const angle = Math.asin(sinTheta);
+    // upper
+    ctx.beginPath();
+    ctx.moveTo(sourceX, H/2);
+    ctx.lineTo(sourceX + dir * coneLen * Math.cos(angle), H/2 - coneLen * Math.sin(angle));
+    ctx.stroke();
+    // lower
+    ctx.beginPath();
+    ctx.moveTo(sourceX, H/2);
+    ctx.lineTo(sourceX + dir * coneLen * Math.cos(angle), H/2 + coneLen * Math.sin(angle));
+    ctx.stroke();
+    // label
+    ctx.fillStyle = 'rgba(255,51,85,0.8)';
+    ctx.font = '11px Space Mono, monospace';
+    ctx.fillText('MACH CONE', sourceX + dir * 60, H/2 - 60);
+    ctx.restore();
+  }
+
+  // wavefronts
+  waves.forEach(w => {
+    const age = time - w.born;
+    const alpha = Math.max(0, 0.7 - age * 0.4);
+    ctx.beginPath();
+    ctx.arc(w.x, H/2, w.r, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0,229,255,${alpha})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  });
+
+  // source
+  const grd = ctx.createRadialGradient(sourceX, H/2, 0, sourceX, H/2, 18);
+  grd.addColorStop(0, 'rgba(255,179,0,0.9)');
+  grd.addColorStop(1, 'rgba(255,179,0,0)');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(sourceX, H/2, 18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffb300';
+  ctx.beginPath();
+  ctx.arc(sourceX, H/2, 7, 0, Math.PI * 2);
+  ctx.fill();
+
+  // velocity arrow
+  if (vs !== 0) {
+    const arrowLen = Math.min(80, Math.abs(vs) * 0.25);
+    const dir2 = vs > 0 ? 1 : -1;
+    ctx.strokeStyle = '#ffb300';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(sourceX, H/2);
+    ctx.lineTo(sourceX + dir2 * arrowLen, H/2);
+    ctx.stroke();
+    ctx.fillStyle = '#ffb300';
+    ctx.beginPath();
+    const tip = sourceX + dir2 * arrowLen;
+    ctx.moveTo(tip, H/2);
+    ctx.lineTo(tip - dir2 * 8, H/2 - 5);
+    ctx.lineTo(tip - dir2 * 8, H/2 + 5);
+    ctx.fill();
+  }
+
+  // observer
+  const obsX = W * 0.85;
+  const obsVdir = vo;
+  ctx.font = '22px serif';
+  ctx.fillText('👂', obsX - 11, H/2 + 8);
+  ctx.fillStyle = '#7a9bb5';
+  ctx.font = '10px Space Mono, monospace';
+  ctx.fillText('OBSERVER', obsX - 26, H/2 + 28);
+
+  // HUD on canvas
+  const { fs: fsCur, vs: vsCur, vo: voCur, v: vCur } = getParams();
+  const fobsCur = Math.round(Math.max(0, calcFobs(fsCur, vsCur, voCur, vCur)));
+  ctx.fillStyle = 'rgba(2,8,16,0.75)';
+  ctx.fillRect(10, 10, 185, 70);
+  ctx.fillStyle = '#7a9bb5';
+  ctx.font = '10px Space Mono, monospace';
+  ctx.fillText('f_source  : ' + fsCur + ' Hz', 18, 30);
+  ctx.fillText('v_source  : ' + vsCur + ' m/s', 18, 46);
+  ctx.fillStyle = fobsCur > fsCur ? '#00e5ff' : fobsCur < fsCur ? '#ff3355' : '#e8f4f8';
+  ctx.fillText('f_observed: ' + fobsCur + ' Hz', 18, 62);
+  ctx.fillStyle = '#7a9bb5';
+  ctx.fillText('M: ' + M.toFixed(2), 160, 30);
+}
+
+// ── QUIZ ─────────────────────────────────────────────
+const QUESTIONS = [
+  {
+    q: "A train emits sound at 500 Hz and approaches a stationary observer at 34.3 m/s. Speed of sound = 343 m/s. What does the observer hear?",
+    opts: ["550 Hz", "475 Hz", "500 Hz", "520 Hz"],
+    ans: 0,
+    exp: "<b>Formula:</b> f_obs = f_s × v/(v − v_s) = 500 × 343/(343 − 34.3) = 500 × 343/308.7 ≈ <b>555 Hz ≈ 550 Hz</b>. Source approaching → frequency increases."
+  },
+  {
+    q: "The same train is now receding at 34.3 m/s. What does the observer now hear?",
+    opts: ["500 Hz", "455 Hz", "550 Hz", "480 Hz"],
+    ans: 1,
+    exp: "<b>Formula:</b> f_obs = f_s × v/(v + v_s) = 500 × 343/377.3 ≈ <b>454 Hz ≈ 455 Hz</b>. Source receding → frequency decreases."
+  },
+  {
+    q: "An observer moves toward a stationary 400 Hz source at 34.3 m/s (v = 343 m/s). What frequency do they hear?",
+    opts: ["360 Hz", "440 Hz", "400 Hz", "380 Hz"],
+    ans: 1,
+    exp: "<b>Formula:</b> f_obs = f_s × (v + v_o)/v = 400 × (343 + 34.3)/343 = 400 × 1.1 = <b>440 Hz</b>. Observer approaching source → increase."
+  },
+  {
+    q: "A jet travels at v_s = 686 m/s in air where v = 343 m/s. What is the Mach cone half-angle θ?",
+    opts: ["45°", "60°", "30°", "90°"],
+    ans: 2,
+    exp: "<b>M = v_s/v = 686/343 = 2.</b> sin θ = 1/M = 0.5. <b>θ = arcsin(0.5) = 30°</b>. This is a classic result — M=2 gives θ=30°."
+  },
+  {
+    q: "Astronomers observe a galaxy's hydrogen line shifted from 656 nm to 700 nm. This represents a:",
+    opts: ["Blueshift — galaxy approaching", "Redshift — galaxy receding", "No relative motion", "Gravitational lensing"],
+    ans: 1,
+    exp: "<b>The wavelength increased</b> (656 → 700 nm means λ shifted toward longer/red wavelengths). By the Doppler formula for light, λ_obs > λ_s means the source is <b>receding</b>. This is the cosmological redshift Hubble used to prove universal expansion."
+  }
+];
+
+let quizState = { answered: [], current: 0, score: 0 };
+
+function initQuiz() {
+  quizState = { answered: Array(QUESTIONS.length).fill(null), current: 0, score: 0 };
+  renderQuiz();
+}
+
+function renderQuiz() {
+  const c = document.getElementById('quizContainer');
+  if (quizState.current >= QUESTIONS.length) {
+    renderResult(c); return;
+  }
+
+  const q = QUESTIONS[quizState.current];
+  const letters = ['A','B','C','D'];
+  const ans = quizState.answered[quizState.current];
+
+  c.innerHTML = `
+    <div class="quiz-progress">
+      ${QUESTIONS.map((_, i) => {
+        let cls = 'pip';
+        if (i === quizState.current) cls += ' active';
+        else if (quizState.answered[i] !== null)
+          cls += quizState.answered[i] === QUESTIONS[i].ans ? ' done' : ' wrong';
+        return `<div class="${cls}"></div>`;
+      }).join('')}
+    </div>
+    <div class="quiz-score">Score: <b>${quizState.score} / ${QUESTIONS.length}</b> &nbsp;|&nbsp; Question ${quizState.current + 1} of ${QUESTIONS.length}</div>
+    <div class="question-card">
+      <div class="q-num">QUESTION ${String(quizState.current + 1).padStart(2,'0')}</div>
+      <div class="q-text">${q.q}</div>
+      <div class="options">
+        ${q.opts.map((opt, i) => {
+          let cls = 'option';
+          if (ans !== null) {
+            if (i === q.ans) cls += ' correct';
+            else if (i === ans && ans !== q.ans) cls += ' wrong';
+          }
+          return `<button class="${cls}" ${ans !== null ? 'disabled' : ''} onclick="answerQ(${i})">
+            <span class="opt-letter">${letters[i]}</span>${opt}
+          </button>`;
+        }).join('')}
+      </div>
+      <div class="explanation ${ans !== null ? 'show' : ''}">
+        ${q.exp}
+      </div>
+    </div>
+    <button class="quiz-btn" ${ans === null ? 'disabled' : ''} onclick="nextQ()">
+      ${quizState.current < QUESTIONS.length - 1 ? 'NEXT QUESTION →' : 'SEE RESULTS →'}
+    </button>
+  `;
+}
+
+function answerQ(i) {
+  if (quizState.answered[quizState.current] !== null) return;
+  quizState.answered[quizState.current] = i;
+  if (i === QUESTIONS[quizState.current].ans) quizState.score++;
+  renderQuiz();
+}
+
+function nextQ() {
+  quizState.current++;
+  renderQuiz();
+}
+
+function renderResult(c) {
+  const s = quizState.score;
+  const msgs = ['Keep studying — review the formula table!', 'Good start — review the Mach cone section.', 'Solid! A couple of gaps to fill.', 'Great work — nearly there!', 'Excellent! You know your Doppler physics.', 'Perfect score! Physics genius unlocked.'];
+  const pct = Math.floor((s / QUESTIONS.length) * 100);
+  c.innerHTML = `
+    <div class="result-card">
+      <div class="result-score">${s}/${QUESTIONS.length}</div>
+      <div class="result-label">Final Score — ${pct}%</div>
+      <div class="result-msg">${msgs[s]}</div>
+      <button class="quiz-btn" onclick="initQuiz()">↺ RETAKE QUIZ</button>
+    </div>
+  `;
+}
+
+// init
+updateLabels();
+</script>
+</body>
+</html>
